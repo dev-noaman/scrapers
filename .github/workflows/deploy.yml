@@ -138,6 +138,7 @@ jobs:
             netstat -tulpn | grep nginx || true
             curl -sI http://localhost:8080/health || echo "API-php internal failure"
             curl -sI http://localhost:8081/health || echo "API-node internal failure"
+            curl -sI http://localhost:8082/ || echo "Portal internal failure"
 
             echo "--- DEPLOYMENT FINISHED ---"
             echo "NOTE: If HTTPS is not working, check your VPS Provider Control Panel (Hostinger/AWS/etc) and allow Port 80 and 443."
