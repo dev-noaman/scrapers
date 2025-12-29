@@ -22,73 +22,49 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           command_timeout: 45m
           script: |
-            set -ex  # Exit on error AND print every command executed (set -x)
+            set -ex
+            cd /root/scrapers
             
-            echo "--- DEPLOYMENT DIAGNOSTICS ---"
-            date
-            df -h
-            docker version || echo "Docker not installed?"
-            docker info | grep -E "Kernel|OS|Storage" || true
-            
-            # Simple command detection
+            # 1. Detect Compose
             if docker compose version > /dev/null 2>&1; then
                 DOCKER_COMPOSE="docker compose"
             else
                 DOCKER_COMPOSE="docker-compose"
             fi
-            echo "Using $DOCKER_COMPOSE"
 
-            # Sync code
-            mkdir -p /root/scrapers
-            cd /root/scrapers
-            
-            # Ensure it's a git repo or clean it up
-            if [ -d ".git" ]; then
-                echo "Updating existing repo..."
-                git remote set-url origin https://github.com/dev-noaman/scrapers.git
-                git fetch origin main
-                git reset --hard origin/main
-            else
-                echo "Cloning fresh repo..."
-                cd /root
-                rm -rf scrapers
-                git clone https://github.com/dev-noaman/scrapers.git
-                cd scrapers
-            fi
+            # 2. Sync Code
+            git remote set-url origin https://github.com/dev-noaman/scrapers.git
+            git fetch origin main
+            git reset --hard origin/main
 
-            # Build and Run API-php
-            echo "--- API-php ---"
+            # 3. Deploy
+            echo "--- DEPLOYING API-php ---"
             cd /root/scrapers/API-php
             $DOCKER_COMPOSE down --remove-orphans || true
             $DOCKER_COMPOSE up -d --build
 
-            # Build and Run API-node
-            echo "--- API-node ---"
+            echo "--- DEPLOYING API-node ---"
             cd /root/scrapers/API-node
             $DOCKER_COMPOSE down --remove-orphans || true
             $DOCKER_COMPOSE up -d --build
 
-            echo "--- Final Check ---"
-            docker ps -a
+            # 4. CAPTURE LOGS (Wait and print even if restarting)
+            echo "--- LOGS COLLECTION (Wait 10s) ---"
+            sleep 10
             
-            # Check container health and logs if they failed
-            PHP_RUNNING=$(docker ps -q -f name=api-php-scraper)
-            NODE_RUNNING=$(docker ps -q -f name=api-node-scraper)
+            echo "--- api-php-scraper container status ---"
+            docker inspect -f '{{.State.Status}} (ExitCode: {{.State.ExitCode}})' api-php-scraper || true
+            echo "--- api-php-scraper logs ---"
+            docker logs --tail 100 api-php-scraper || true
             
-            if [ -z "$PHP_RUNNING" ]; then
-                echo "ERROR: api-php-scraper failed to start. Logs:"
-                docker logs api-php-scraper || true
-            fi
-            
-            if [ -z "$NODE_RUNNING" ]; then
-                echo "ERROR: api-node-scraper failed to start. Logs:"
-                docker logs api-node-scraper || true
-            fi
-            
-            # Explicit failure for the Action if containers are dead
-            if [ -z "$PHP_RUNNING" ] || [ -z "$NODE_RUNNING" ]; then
-                echo "DEPLOYMENT FAILED: Containers are not running."
+            echo "--- api-node-scraper logs ---"
+            docker logs --tail 20 api-node-scraper || true
+
+            # Final check to fail if not running
+            PHP_STATUS=$(docker inspect -f '{{.State.Status}}' api-php-scraper)
+            if [ "$PHP_STATUS" != "running" ]; then
+                echo "FAIL: api-php-scraper is $PHP_STATUS"
                 exit 1
             fi
-
+            
             echo "--- DEPLOYMENT FINISHED SUCCESS ---"
