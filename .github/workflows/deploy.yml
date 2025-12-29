@@ -20,15 +20,26 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
-          command_timeout: 30m
+          command_timeout: 40m
           script: |
             echo "--- DEPLOYMENT START ---"
-            echo "Time: $(date)"
+            cd /root
             
-            # 1. Resource Check
-            echo "Memory Info:"
-            free -m
-            
+            # 1. OPTIMIZATION: Check Memory and Create Swap if needed
+            # Building Playwright/Puppeteer images needs ~2GB RAM.
+            MEM_TOTAL=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+            if [ "$MEM_TOTAL" -lt 1500000 ]; then
+                echo "Low memory detected ($((MEM_TOTAL/1024))MB). Checking swap..."
+                if [ $(free -m | grep Swap | awk '{print $2}') -lt 1000 ]; then
+                    echo "Creating 2GB swap file to prevent build crashes..."
+                    fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+                    chmod 600 /swapfile
+                    mkswap /swapfile
+                    swapon /swapfile
+                    echo "Swap created and enabled."
+                fi
+            fi
+
             # 2. Command Detection
             if docker compose version > /dev/null 2>&1; then
                 DOCKER_COMPOSE="docker compose"
@@ -38,56 +49,39 @@ jobs:
             echo "Using $DOCKER_COMPOSE"
 
             # 3. Code Sync
-            cd /root
             if [ -d "scrapers" ]; then
-                echo "Syncing existing folder..."
                 cd scrapers
-                git remote set-url origin https://github.com/dev-noaman/scrapers.git
                 git fetch origin main
                 git reset --hard origin/main
             else
-                echo "Cloning new repository..."
                 git clone https://github.com/dev-noaman/scrapers.git
                 cd scrapers
             fi
-            
-            echo "Current Git Commit: $(git rev-parse HEAD)"
-            echo "Files updated: $(ls -la --time-style=long-iso .github/workflows/deploy.yml)"
 
-            # 4. Deploy API-php
+            # 4. Deploy API-php (Sequential with Logs)
             echo "--- Building API-php ---"
             cd /root/scrapers/API-php
-            # Use --progress=plain to see everything in GH Actions logs
             $DOCKER_COMPOSE down --remove-orphans || true
-            DOCKER_BUILDKIT=1 $DOCKER_COMPOSE up -d --build --quiet-pull
+            if ! $DOCKER_COMPOSE up -d --build; then
+                echo "ERROR: API-php failed to start. Logs:"
+                docker logs api-php-scraper || true
+                exit 1
+            fi
 
-            # 5. Deploy API-node
+            # 5. Deploy API-node (Sequential with Logs)
             echo "--- Building API-node ---"
             cd /root/scrapers/API-node
             $DOCKER_COMPOSE down --remove-orphans || true
-            DOCKER_BUILDKIT=1 $DOCKER_COMPOSE up -d --build --quiet-pull
+            if ! $DOCKER_COMPOSE up -d --build; then
+                echo "ERROR: API-node failed to start. Logs:"
+                docker logs api-node-scraper || true
+                exit 1
+            fi
 
-            # 6. Verification
-            echo "--- Verification ---"
-            sleep 5
+            # 6. Final Status
+            echo "--- Final Check ---"
             docker ps -a
             
-            # Show logs if containers are NOT running
-            if [ -z "$(docker ps -q -f name=api-php-scraper)" ]; then
-                echo "WARNING: api-php-scraper is NOT running. Logs:"
-                docker logs api-php-scraper || true
-            else
-                echo "SUCCESS: api-php-scraper is running."
-            fi
-
-            if [ -z "$(docker ps -q -f name=api-node-scraper)" ]; then
-                echo "WARNING: api-node-scraper is NOT running. Logs:"
-                docker logs api-node-scraper || true
-            else
-                echo "SUCCESS: api-node-scraper is running."
-            fi
-
             # Cleanup
             docker system prune -f
-            
-            echo "--- DEPLOYMENT FINISHED ---"
+            echo "--- DEPLOYMENT SUCCESS ---"
