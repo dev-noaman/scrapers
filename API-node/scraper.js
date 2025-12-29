@@ -221,9 +221,12 @@ async function getApprovalsData(page) {
 }
 
 async function scrapeActivityCode(code) {
+    const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const userDataDir = `/tmp/puppeteer_user_data_${uniqueId}`;
+
     const browser = await puppeteer.launch({
         headless: true,
-        userDataDir: '/tmp/puppeteer_user_data',
+        userDataDir: userDataDir,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
