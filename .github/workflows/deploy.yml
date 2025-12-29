@@ -23,29 +23,8 @@ jobs:
           command_timeout: 40m
           script: |
             echo "--- DEPLOYMENT START ---"
-            cd /root
             
-            # 1. OPTIMIZATION: Check Memory and Create Swap if needed
-            MEM_TOTAL=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-            if [ "$MEM_TOTAL" -lt 1500000 ]; then
-                echo "Low memory detected ($((MEM_TOTAL/1024))MB). Checking swap..."
-                if [ $(free -m | grep Swap | awk '{print $2}') -lt 1000 ]; then
-                    echo "Creating 2GB swap file to prevent build crashes..."
-                    fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
-                    chmod 600 /swapfile
-                    mkswap /swapfile
-                    swapon /swapfile
-                    echo "/swapfile none swap sw 0 0" >> /etc/fstab || echo "fstab entry already exists or failed"
-                    echo "Swap created and enabled on boot."
-                fi
-            fi
-
-            # 2. Ensure Docker starts on boot
-            echo "Ensuring Docker service is enabled on boot..."
-            systemctl enable docker || echo "Could not enable docker service"
-            systemctl start docker || echo "Could not start docker service"
-
-            # 3. Command Detection
+            # Simple command detection
             if docker compose version > /dev/null 2>&1; then
                 DOCKER_COMPOSE="docker compose"
             else
@@ -53,40 +32,33 @@ jobs:
             fi
             echo "Using $DOCKER_COMPOSE"
 
-            # 4. Code Sync
-            if [ -d "scrapers" ]; then
-                cd scrapers
+            # Sync code
+            mkdir -p /root/scrapers
+            cd /root/scrapers
+            if [ -d ".git" ]; then
+                echo "Updating existing repo..."
                 git fetch origin main
                 git reset --hard origin/main
             else
+                echo "Cloning fresh repo..."
+                cd /root
+                rm -rf scrapers # Clean up if it was a non-git dir
                 git clone https://github.com/dev-noaman/scrapers.git
                 cd scrapers
             fi
 
-            # 5. Deploy API-php
-            echo "--- Building API-php ---"
+            # Build and Run API-php
+            echo "--- API-php ---"
             cd /root/scrapers/API-php
             $DOCKER_COMPOSE down --remove-orphans || true
-            if ! $DOCKER_COMPOSE up -d --build; then
-                echo "ERROR: API-php failed to start. Logs:"
-                docker logs api-php-scraper || true
-                exit 1
-            fi
+            $DOCKER_COMPOSE up -d --build
 
-            # 6. Deploy API-node
-            echo "--- Building API-node ---"
+            # Build and Run API-node
+            echo "--- API-node ---"
             cd /root/scrapers/API-node
             $DOCKER_COMPOSE down --remove-orphans || true
-            if ! $DOCKER_COMPOSE up -d --build; then
-                echo "ERROR: API-node failed to start. Logs:"
-                docker logs api-node-scraper || true
-                exit 1
-            fi
+            $DOCKER_COMPOSE up -d --build
 
-            # 7. Final Status
             echo "--- Final Check ---"
-            docker ps -a
-            
-            # Cleanup
-            docker system prune -f
-            echo "--- DEPLOYMENT SUCCESS ---"
+            docker ps
+            echo "--- DEPLOYMENT FINISHED ---"
