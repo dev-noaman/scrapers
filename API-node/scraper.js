@@ -223,6 +223,7 @@ async function getApprovalsData(page) {
 async function scrapeActivityCode(code) {
     const browser = await puppeteer.launch({
         headless: true,
+        userDataDir: '/tmp/puppeteer_user_data',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -232,8 +233,15 @@ async function scrapeActivityCode(code) {
             '--no-first-run',
             '--no-zygote',
             '--disable-crash-reporter',
+            '--no-crashpad',
+            '--disable-breakpad',
             '--disable-features=VisualizeOverlays'
-        ]
+        ],
+        env: {
+            ...process.env,
+            PUPPETEER_DISABLE_CRASH_REPORTER: 'true',
+            HOME: '/tmp'
+        }
     }).catch(err => {
         console.error("BROWSER_LAUNCH_ERROR:", err);
         throw err;
