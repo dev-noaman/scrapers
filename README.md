@@ -1,4 +1,4 @@
-# Qatar Investor Portal Scrapers - Docker Ready
+# Portal - Docker
 
 Docker-ready web scrapers for the Qatar Investor Portal, available in both Python (Playwright) and Node.js (Puppeteer) implementations.
 
@@ -56,25 +56,6 @@ See [QUICKSTART.md](QUICKSTART.md) for step-by-step deployment instructions.
 ✅ **Headless Browsers** - Chromium included in containers  
 ✅ **JSON API** - Clean REST API responses  
 ✅ **Arabic Support** - Extracts both English and Arabic content  
-
-## API Response Format
-
-Both APIs return JSON with the following structure:
-
-```json
-{
-  "status": "success",
-  "data": {
-    "activity_code": "013001",
-    "name_en": "Business Activity Name in English",
-    "name_ar": "اسم النشاط التجاري بالعربية",
-    "locations": "Main Location 1: ...\nSub Location 1: ...\nFee 1: ...",
-    "eligible": "Allowed for GCC nationals\nAllowed for Non-GCC nationals",
-    "approvals": "Approval 1: ...\nAgency 1: ..."
-  },
-  "error": null
-}
-```
 
 ## Requirements
 
@@ -189,23 +170,3 @@ The system uses:
 [... rest of the original README content ...]
 
 </details>
-
-
-
-
-
-
-t looks like you are using a newer version of Docker where the command has changed from docker-compose to a built-in subcommand.
-
-Try running this instead (without the hyphen):
-
-bash
-docker compose up --build -d
-If that still says "command not found," you can install the classic version by running:
-
-bash
-apt update && apt install -y docker-compose
-Then try the original command again:
-
-bash
-docker-compose up --build -d
