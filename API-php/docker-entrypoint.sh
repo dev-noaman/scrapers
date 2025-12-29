@@ -19,15 +19,19 @@ echo "Found FPM binary at: $FPM_BIN"
 echo "Starting PHP-FPM..."
 $FPM_BIN -D || { echo "ERROR: Failed to start FPM binary"; exit 1; }
 
-# Wait for socket
+# Wait for socket and link to generic path
 echo "Waiting for PHP-FPM socket..."
-for i in {1..10}; do
-    if ls /run/php/*.sock >/dev/null 2>&1; then
-        echo "Socket found!"
+for i in {1..15}; do
+    # Find any existing socket
+    ACTUAL_SOCK=$(find /run/php -name "*.sock" | head -n 1)
+    if [ -n "$ACTUAL_SOCK" ]; then
+        echo "Found socket at: $ACTUAL_SOCK"
+        # Create a symbolic link to /run/php/php-fpm.sock for Nginx
+        ln -sf "$ACTUAL_SOCK" /run/php/php-fpm.sock
         ls -la /run/php/
         break
     fi
-    echo "Still waiting for socket... ($i/10)"
+    echo "Still waiting for socket... ($i/15)"
     sleep 1
 done
 
