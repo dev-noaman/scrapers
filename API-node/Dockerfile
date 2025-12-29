@@ -53,7 +53,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install Node.js dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Install Puppeteer's Chromium
 RUN npx puppeteer browsers install chrome
