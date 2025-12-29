@@ -70,34 +70,38 @@ jobs:
             $DOCKER_COMPOSE down --remove-orphans || true
             $DOCKER_COMPOSE up -d --build
 
-            # 6. HOST NGINX CONFIGURATION (Safer Heredoc)
+            # 6. HOST NGINX CONFIGURATION
             echo "--- Writing Nginx Config ---"
-            cat > /etc/nginx/sites-available/noaman.cloud <<'EOF'
-server {
-    listen 80;
-    server_name noaman.cloud;
+            cat > /etc/nginx/sites-available/noaman.cloud << 'HOST_NGINX'
+            server {
+                listen 80;
+                server_name noaman.cloud;
 
-    location /api-php/ {
-        proxy_pass http://127.0.0.1:8080/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 300;
-    }
+                location /api-php/ {
+                    proxy_pass http://127.0.0.1:8080/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_read_timeout 300;
+                }
 
-    location /api-node/ {
-        proxy_pass http://127.0.0.1:8081/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 300;
-    }
-}
-EOF
+                location /api-node/ {
+                    proxy_pass http://127.0.0.1:8081/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                    proxy_read_timeout 300;
+                }
+            }
+            HOST_NGINX
+            
+            # Using sed to remove the leading indentation (12 spaces) from the generated file
+            sed -i 's/^            //' /etc/nginx/sites-available/noaman.cloud
+
             ln -sf /etc/nginx/sites-available/noaman.cloud /etc/nginx/sites-enabled/
             rm -f /etc/nginx/sites-enabled/default || true
             nginx -t
