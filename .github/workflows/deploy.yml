@@ -20,57 +20,74 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
+          command_timeout: 30m
           script: |
-            # Don't use set -e immediately so we can capture exactly where it fails
             echo "--- DEPLOYMENT START ---"
-            echo "Date: $(date)"
+            echo "Time: $(date)"
             
-            # 1. Determine Docker Compose command
+            # 1. Resource Check
+            echo "Memory Info:"
+            free -m
+            
+            # 2. Command Detection
             if docker compose version > /dev/null 2>&1; then
                 DOCKER_COMPOSE="docker compose"
-            elif docker-compose version > /dev/null 2>&1; then
-                DOCKER_COMPOSE="docker-compose"
             else
-                echo "ERROR: Neither 'docker compose' nor 'docker-compose' found!"
-                exit 1
+                DOCKER_COMPOSE="docker-compose"
             fi
             echo "Using $DOCKER_COMPOSE"
 
-            # 2. Sync Code (More aggressive)
+            # 3. Code Sync
             cd /root
             if [ -d "scrapers" ]; then
-                echo "Updating existing code..."
+                echo "Syncing existing folder..."
                 cd scrapers
                 git remote set-url origin https://github.com/dev-noaman/scrapers.git
                 git fetch origin main
                 git reset --hard origin/main
             else
-                echo "Cloning repository..."
+                echo "Cloning new repository..."
                 git clone https://github.com/dev-noaman/scrapers.git
                 cd scrapers
             fi
             
-            # Show current state
-            echo "Current files in $(pwd):"
-            ls -la
+            echo "Current Git Commit: $(git rev-parse HEAD)"
+            echo "Files updated: $(ls -la --time-style=long-iso .github/workflows/deploy.yml)"
 
-            # 3. Deploy API-php
-            echo "--- Deploying API-php ---"
+            # 4. Deploy API-php
+            echo "--- Building API-php ---"
             cd /root/scrapers/API-php
+            # Use --progress=plain to see everything in GH Actions logs
             $DOCKER_COMPOSE down --remove-orphans || true
-            $DOCKER_COMPOSE up -d --build
-            
-            # 4. Deploy API-node
-            echo "--- Deploying API-node ---"
+            DOCKER_BUILDKIT=1 $DOCKER_COMPOSE up -d --build --quiet-pull
+
+            # 5. Deploy API-node
+            echo "--- Building API-node ---"
             cd /root/scrapers/API-node
             $DOCKER_COMPOSE down --remove-orphans || true
-            $DOCKER_COMPOSE up -d --build
+            DOCKER_BUILDKIT=1 $DOCKER_COMPOSE up -d --build --quiet-pull
+
+            # 6. Verification
+            echo "--- Verification ---"
+            sleep 5
+            docker ps -a
             
-            # 5. Final Status
-            echo "--- Deployment Finished ---"
-            docker ps
-            
+            # Show logs if containers are NOT running
+            if [ -z "$(docker ps -q -f name=api-php-scraper)" ]; then
+                echo "WARNING: api-php-scraper is NOT running. Logs:"
+                docker logs api-php-scraper || true
+            else
+                echo "SUCCESS: api-php-scraper is running."
+            fi
+
+            if [ -z "$(docker ps -q -f name=api-node-scraper)" ]; then
+                echo "WARNING: api-node-scraper is NOT running. Logs:"
+                docker logs api-node-scraper || true
+            else
+                echo "SUCCESS: api-node-scraper is running."
+            fi
+
             # Cleanup
             docker system prune -f
             
-            echo "--- DEPLOYMENT SUCCESS ---"
+            echo "--- DEPLOYMENT FINISHED ---"
