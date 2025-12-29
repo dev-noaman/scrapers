@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,7 +30,7 @@
             color: var(--text);
             line-height: 1.6;
             overflow-x: hidden;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
                 radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 40%);
             min-height: 100vh;
@@ -53,6 +54,7 @@
             margin-bottom: 1rem;
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -1px;
             animation: fadeInDown 1s ease-out;
@@ -181,43 +183,80 @@
         }
 
         @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.5); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 1; }
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         @media (max-width: 640px) {
-            .logo { font-size: 2.2rem; }
-            .grid { grid-template-columns: 1fr; }
+            .logo {
+                font-size: 2.2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1 class="logo">noaman.cloud</h1>
         <p class="tagline">Enterprise-grade data extraction for the Qatar Investor Portal.</p>
-        
+
         <div class="grid">
             <!-- PHP API Card -->
             <a href="/api-php/scraper.php?code=013001" class="card">
                 <span class="badge">Python + Playwright</span>
                 <h2 class="card-title">High-Speed API</h2>
-                <p class="card-desc">Our fastest implementation, optimized for large-scale data extraction with Playwright. Averages ~10s per request.</p>
+                <p class="card-desc">Our fastest implementation, optimized for large-scale data extraction with
+                    Playwright. Averages ~10s per request.</p>
                 <div class="btn">Launch Scraper</div>
             </a>
 
@@ -225,7 +264,8 @@
             <a href="/api-node/api.php?code=013001" class="card">
                 <span class="badge">Node.js + Puppeteer</span>
                 <h2 class="card-title">Persistent Service</h2>
-                <p class="card-desc">Advanced Chromium persistence layer designed for continuous scraping tasks. Stable and reliable.</p>
+                <p class="card-desc">Advanced Chromium persistence layer designed for continuous scraping tasks. Stable
+                    and reliable.</p>
                 <div class="btn">Launch Scraper</div>
             </a>
         </div>
@@ -240,4 +280,5 @@
         </footer>
     </div>
 </body>
+
 </html>
