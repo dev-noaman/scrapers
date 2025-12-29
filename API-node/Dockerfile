@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y \
     libxtst6 \
     lsb-release \
     xdg-utils \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

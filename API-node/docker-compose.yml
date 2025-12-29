@@ -9,7 +9,6 @@ services:
     environment:
       - NODE_ENV=production
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-      - PUPPETEER_EXECUTABLE_PATH=/root/.cache/puppeteer/chrome/linux-131.0.6778.204/chrome-linux64/chrome
     restart: unless-stopped
     volumes:
       # Mount code for development (remove in production)

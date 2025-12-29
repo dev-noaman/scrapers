@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libasound2 \
     libatspi2.0-0 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
