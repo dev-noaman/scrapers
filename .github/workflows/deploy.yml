@@ -21,27 +21,70 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
+            set -e  # Exit on error
+
+            # ---------------------------------------------------------
+            # 1. Fresh Installation Check (Install Docker if missing)
+            # ---------------------------------------------------------
+            if ! command -v docker &> /dev/null; then
+                echo "Docker not found. Installing Docker and dependencies..."
+                
+                # Update and install prerequisite packages
+                sudo apt-get update
+                sudo apt-get install -y ca-certificates curl gnupg lsb-release git
+
+                # Install Docker
+                curl -fsSL https://get.docker.com -o get-docker.sh
+                sudo sh get-docker.sh
+                
+                # Install Docker Compose Plugin
+                sudo apt-get install -y docker-compose-plugin
+                
+                # Start Docker service
+                sudo systemctl start docker
+                sudo systemctl enable docker
+                
+                echo "Docker installed successfully."
+            else
+                echo "Docker is already installed."
+            fi
+
+            # ---------------------------------------------------------
+            # 2. Code Update
+            # ---------------------------------------------------------
             # Navigate to project directory or clone if not exists
             if [ -d "/root/scrapers" ]; then
+              echo "Updating existing repository..."
               cd /root/scrapers
+              git reset --hard
               git pull origin main
             else
+              echo "Cloning repository..."
               cd /root
               git clone https://github.com/dev-noaman/scrapers.git
               cd scrapers
             fi
             
-            # Deploy API-php
+            # ---------------------------------------------------------
+            # 3. Deploy API-php
+            # ---------------------------------------------------------
+            echo "Deploying API-php..."
             cd /root/scrapers/API-php
-            docker compose down
-            docker compose up -d --build
+            docker compose down --remove-orphans
+            docker compose up -d --build --wait
             
-            # Deploy API-node
+            # ---------------------------------------------------------
+            # 4. Deploy API-node
+            # ---------------------------------------------------------
+            echo "Deploying API-node..."
             cd /root/scrapers/API-node
-            docker compose down
-            docker compose up -d --build
+            docker compose down --remove-orphans
+            docker compose up -d --build --wait
             
-            # Clean up old images
+            # ---------------------------------------------------------
+            # 5. Cleanup
+            # ---------------------------------------------------------
+            echo "Cleaning up..."
             docker system prune -f
             
-            echo "Deployment completed successfully!"
+            echo "Deployment completed successfully! Containers are healthy and ready."
