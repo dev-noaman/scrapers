@@ -29,7 +29,7 @@ jobs:
             apt-get update
             apt-get install -y nginx certbot python3-certbot-nginx ufw curl
 
-            # 2. FIREWALL
+            # 2. FIREWALL (Apply regardless of status)
             echo "--- Configuring Firewall ---"
             ufw allow 80/tcp || true
             ufw allow 443/tcp || true
@@ -73,52 +73,55 @@ jobs:
             # 6. HOST NGINX CONFIGURATION
             echo "--- Writing Nginx Config ---"
             cat > /etc/nginx/sites-available/noaman.cloud << 'HOST_NGINX'
-            server {
-                listen 80;
-                server_name noaman.cloud;
+server {
+    listen 80;
+    server_name noaman.cloud;
 
-                location /api-php/ {
-                    proxy_pass http://127.0.0.1:8080/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_read_timeout 300;
-                }
+    location /api-php/ {
+        proxy_pass http://127.0.0.1:8080/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300;
+    }
 
-                location /api-node/ {
-                    proxy_pass http://127.0.0.1:8081/;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection 'upgrade';
-                    proxy_set_header Host $host;
-                    proxy_cache_bypass $http_upgrade;
-                    proxy_read_timeout 300;
-                }
-            }
-            HOST_NGINX
+    location /api-node/ {
+        proxy_pass http://127.0.0.1:8081/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300;
+    }
+}
+HOST_NGINX
             
-            # Using sed to remove the leading indentation (12 spaces) from the generated file
             sed -i 's/^            //' /etc/nginx/sites-available/noaman.cloud
-
             ln -sf /etc/nginx/sites-available/noaman.cloud /etc/nginx/sites-enabled/
             rm -f /etc/nginx/sites-enabled/default || true
             nginx -t
             systemctl restart nginx
 
-            # 7. AUTOMATED SSL
-            echo "--- Certbot SSL ---"
+            # 7. AUTOMATED SSL (Aggressive)
+            echo "--- Certbot SSL Setup ---"
             if [ ! -d "/etc/letsencrypt/live/noaman.cloud" ]; then
-                certbot --nginx -d noaman.cloud --non-interactive --agree-tos -m noaman.cloud@gmail.com || echo "SSL failed"
+                echo "Requesting new certificate..."
+                certbot --nginx -d noaman.cloud --non-interactive --agree-tos -m noaman.cloud@gmail.com || (echo "Certbot Failed! Check logs:" && cat /var/log/letsencrypt/letsencrypt.log && exit 1)
             else
-                certbot --nginx -d noaman.cloud --non-interactive --reinstall || echo "SSL already exists"
+                echo "Updating/Reinstalling existing certificate..."
+                certbot --nginx -d noaman.cloud --non-interactive --reinstall || echo "Reinstall skipped"
             fi
 
             # 8. VERIFICATION
             sleep 5
-            docker ps
-            curl -sI http://localhost:8080/health || true
-            curl -sI http://localhost:8081/health || true
+            echo "--- Final Ports Check ---"
+            netstat -tulpn | grep nginx || true
+            
+            echo "--- Internal Health Tests ---"
+            curl -sI http://localhost:8080/health || echo "API-php health fail"
+            curl -sI http://localhost:8081/health || echo "API-node health fail"
 
-            echo "--- DEPLOYMENT SUCCESS ---"
+            echo "--- DEPLOYMENT FULLY AUTOMATED & SUCCESS ---"
