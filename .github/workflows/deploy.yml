@@ -21,46 +21,56 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            set -e
-
-            echo "Starting deployment on VPS..."
-
-            # 1. Update/Install Docker & Compose
-            if ! command -v docker &> /dev/null; then
-                echo "Installing Docker..."
-                curl -fsSL https://get.docker.com -o get-docker.sh
-                sh get-docker.sh
-                apt-get update && apt-get install -y docker-compose-plugin git
+            # Don't use set -e immediately so we can capture exactly where it fails
+            echo "--- DEPLOYMENT START ---"
+            echo "Date: $(date)"
+            
+            # 1. Determine Docker Compose command
+            if docker compose version > /dev/null 2>&1; then
+                DOCKER_COMPOSE="docker compose"
+            elif docker-compose version > /dev/null 2>&1; then
+                DOCKER_COMPOSE="docker-compose"
+            else
+                echo "ERROR: Neither 'docker compose' nor 'docker-compose' found!"
+                exit 1
             fi
+            echo "Using $DOCKER_COMPOSE"
 
-            # 2. Sync Code
-            if [ -d "/root/scrapers" ]; then
-                echo "Updating code..."
-                cd /root/scrapers
+            # 2. Sync Code (More aggressive)
+            cd /root
+            if [ -d "scrapers" ]; then
+                echo "Updating existing code..."
+                cd scrapers
+                git remote set-url origin https://github.com/dev-noaman/scrapers.git
                 git fetch origin main
                 git reset --hard origin/main
             else
-                echo "Initial clone..."
-                cd /root
+                echo "Cloning repository..."
                 git clone https://github.com/dev-noaman/scrapers.git
                 cd scrapers
             fi
+            
+            # Show current state
+            echo "Current files in $(pwd):"
+            ls -la
 
             # 3. Deploy API-php
-            echo "Building API-php..."
+            echo "--- Deploying API-php ---"
             cd /root/scrapers/API-php
-            docker compose down --remove-orphans || true
-            docker compose up -d --build
-
+            $DOCKER_COMPOSE down --remove-orphans || true
+            $DOCKER_COMPOSE up -d --build
+            
             # 4. Deploy API-node
-            echo "Building API-node..."
+            echo "--- Deploying API-node ---"
             cd /root/scrapers/API-node
-            docker compose down --remove-orphans || true
-            docker compose up -d --build
-
+            $DOCKER_COMPOSE down --remove-orphans || true
+            $DOCKER_COMPOSE up -d --build
+            
             # 5. Final Status
-            echo "Deployment finished! Checking containers:"
+            echo "--- Deployment Finished ---"
             docker ps
-
+            
             # Cleanup
             docker system prune -f
+            
+            echo "--- DEPLOYMENT SUCCESS ---"
