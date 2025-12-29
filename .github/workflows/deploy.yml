@@ -78,7 +78,7 @@ jobs:
             echo "--- Writing Host Nginx Config ---"
             cat > /etc/nginx/sites-available/noaman.cloud << 'EOF'
             server {
-                listen 80;
+                listen 80 default_server;
                 server_name noaman.cloud www.noaman.cloud;
 
                 # Welcome Page
