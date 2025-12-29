@@ -189,3 +189,23 @@ The system uses:
 [... rest of the original README content ...]
 
 </details>
+
+
+
+
+
+
+t looks like you are using a newer version of Docker where the command has changed from docker-compose to a built-in subcommand.
+
+Try running this instead (without the hyphen):
+
+bash
+docker compose up --build -d
+If that still says "command not found," you can install the classic version by running:
+
+bash
+apt update && apt install -y docker-compose
+Then try the original command again:
+
+bash
+docker-compose up --build -d
