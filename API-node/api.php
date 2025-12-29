@@ -30,14 +30,30 @@ if (empty($code)) {
     exit;
 }
 
-// Execute Node.js scraper
-$command = "node scraper.js " . escapeshellarg($code) . " 2>&1";
-$output = shell_exec($command);
+// Execute Node.js scraper via HTTP
+$url = "http://localhost:3000/?code=" . urlencode($code);
 
-if ($output === null) {
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 200);
+$output = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$error = curl_error($ch);
+curl_close($ch);
+
+if ($output === false) {
     echo json_encode([
         "status" => "error",
-        "message" => "Failed to execute scraper. Make sure Node.js is installed."
+        "message" => "Failed to communicate with scraper service: $error"
+    ]);
+    exit;
+}
+
+if ($httpCode !== 200) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Scraper service returned HTTP $httpCode: $output"
     ]);
     exit;
 }

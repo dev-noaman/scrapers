@@ -21,6 +21,10 @@ for i in {1..15}; do
     sleep 1
 done
 
+# Start Node.js Scraper Server
+echo "Starting Node.js Scraper Server..."
+node scraper.js > /var/log/scraper.log 2>&1 &
+
 # Start Nginx in foreground
 echo "Starting Nginx..."
 exec nginx -g 'daemon off;'

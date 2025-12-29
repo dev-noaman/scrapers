@@ -1,6 +1,9 @@
-#!/usr/bin/env node
-
 const puppeteer = require('puppeteer');
+const http = require('http');
+const url = require('url');
+
+let globalBrowser = null;
+let launchPromise = null;
 
 // Configuration
 const BASE_URL = "https://investor.sw.gov.qa/wps/portal/investors/home/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8zivfxNXA393Q38LXy9DQzMAj0cg4NcLY0MDMz1w_Wj9KNQlISGGRkEOjuZBjm6Wxj7OxpCFRjgAI4G-sGJRfoF2dlpjo6KigD6q7KF/dz/d5/L0lHSkovd0RNQUZrQUVnQSEhLzROVkUvZW4!/";
@@ -220,38 +223,49 @@ async function getApprovalsData(page) {
     }
 }
 
-async function scrapeActivityCode(code) {
-    const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const userDataDir = `/tmp/puppeteer_user_data_${uniqueId}`;
+async function getBrowser() {
+    if (globalBrowser) return globalBrowser;
+    if (launchPromise) return launchPromise;
 
-    const browser = await puppeteer.launch({
-        headless: true,
-        userDataDir: userDataDir,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-crash-reporter',
-            '--no-crashpad',
-            '--disable-breakpad',
-            '--disable-features=VisualizeOverlays'
-        ],
-        env: {
-            ...process.env,
-            PUPPETEER_DISABLE_CRASH_REPORTER: 'true',
-            HOME: '/tmp'
-        }
-    }).catch(err => {
-        console.error("BROWSER_LAUNCH_ERROR:", err);
-        throw err;
-    });
+    launchPromise = (async () => {
+        const uniqueId = `startup_${Date.now()}`;
+        const userDataDir = `/tmp/puppeteer_user_data_${uniqueId}`;
+
+        console.log("Launching persistent browser...");
+        return await puppeteer.launch({
+            headless: true,
+            userDataDir: userDataDir,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-crash-reporter',
+                '--no-crashpad',
+                '--disable-breakpad',
+                '--disable-features=VisualizeOverlays'
+            ],
+            env: {
+                ...process.env,
+                PUPPETEER_DISABLE_CRASH_REPORTER: 'true',
+                HOME: '/tmp'
+            }
+        });
+    })();
+
+    globalBrowser = await launchPromise;
+    launchPromise = null;
+    return globalBrowser;
+}
+
+async function scrapeActivityCode(code) {
+    const browser = await getBrowser();
+    const page = await browser.newPage();
 
     try {
-        const page = await browser.newPage();
         await page.setDefaultTimeout(120000);
 
         // Optimization: Block unnecessary resources
@@ -382,22 +396,61 @@ async function scrapeActivityCode(code) {
             error: error.message
         };
     } finally {
-        await browser.close();
+        await page.close().catch(() => { });
     }
 }
 
-// CLI or HTTP mode
-if (require.main === module) {
-    const code = process.argv[2];
-    if (!code) {
-        console.log(JSON.stringify({ status: "error", message: "Usage: node scraper.js <bacode>" }));
-        process.exit(1);
+// Start HTTP server
+const PORT = process.env.SCRAPER_PORT || 3000;
+const server = http.createServer(async (req, res) => {
+    const parsedUrl = url.parse(req.url, true);
+
+    if (parsedUrl.pathname === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
+        return;
     }
 
+    const code = parsedUrl.query.code;
+    if (!code) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: "error", message: "Missing 'code' parameter." }));
+        return;
+    }
+
+    console.log(`Received request for code: ${code}`);
+    try {
+        const result = await scrapeActivityCode(code);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+    } catch (err) {
+        console.error(`Error scraping code ${code}:`, err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: "error", message: err.message }));
+    }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Scraper server running on http://0.0.0.0:${PORT}`);
+    // Pre-launch browser
+    getBrowser().catch(err => console.error("Initial browser launch failed:", err));
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, closing browser and server...');
+    if (globalBrowser) await globalBrowser.close();
+    server.close();
+});
+
+// CLI mode fallback if needed (though now primarily a server)
+if (require.main === module && process.argv[2]) {
+    const code = process.argv[2];
     scrapeActivityCode(code).then(result => {
         console.log(JSON.stringify(result, null, 2));
+        process.exit(0);
     }).catch(err => {
-        console.log(JSON.stringify({ status: "error", message: err.message }));
+        console.error(err);
         process.exit(1);
     });
 }
