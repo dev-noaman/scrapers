@@ -5,16 +5,22 @@
 
 header('Content-Type: application/json');
 
-if ($argc < 2) {
-    echo json_encode(["status" => "error", "message" => "Usage: php scraper.php <bacode>"]);
+// Get code from query parameter or CLI
+if (php_sapi_name() === 'cli') {
+    $code = isset($argv[1]) ? $argv[1] : '';
+} else {
+    $code = isset($_GET['code']) ? $_GET['code'] : '';
+}
+
+if (empty($code)) {
+    echo json_encode(["status" => "error", "message" => "Missing 'code' parameter. Usage: scraper.php?code=013001"]);
     exit(1);
 }
 
-$code = escapeshellarg($argv[1]);
+$code_esc = escapeshellarg($code);
 
-// Command to run Python script
-// Set PYTHONIOENCODING to utf-8 to avoid charmap errors on Windows
-$command = "set PYTHONIOENCODING=utf-8 && python scraper.py --code $code --json"; // No --headless needed as it defaults to headless in main() logic
+// Command to run Python script (Linux syntax)
+$command = "PYTHONIOENCODING=utf-8 python3 scraper.py --code $code_esc --json 2>&1"; 
 
 // Execute command
 $output = shell_exec($command);

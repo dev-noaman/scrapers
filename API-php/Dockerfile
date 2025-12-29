@@ -16,7 +16,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers
+# Set Playwright browser path
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.cache/ms-playwright
+
+# Install Playwright browsers and system dependencies
 RUN playwright install chromium
 RUN playwright install-deps chromium
 
