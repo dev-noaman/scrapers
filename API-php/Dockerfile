@@ -2,11 +2,12 @@ FROM python:3.11-slim
 
 # Install system dependencies including PHP, Nginx, and browser dependencies
 RUN apt-get update && apt-get install -y \
-    php8.2 \
-    php8.2-fpm \
-    php8.2-cli \
+    php-fpm \
+    php-cli \
     nginx \
     wget \
+    curl \
+    ca-certificates \
     gnupg \
     libnss3 \
     libnspr4 \
@@ -25,7 +26,6 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libasound2 \
     libatspi2.0-0 \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

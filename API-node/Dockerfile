@@ -2,9 +2,8 @@ FROM node:20-slim
 
 # Install system dependencies including PHP, Nginx, and Chromium dependencies
 RUN apt-get update && apt-get install -y \
-    php8.2 \
-    php8.2-fpm \
-    php8.2-cli \
+    php-fpm \
+    php-cli \
     nginx \
     wget \
     gnupg \
