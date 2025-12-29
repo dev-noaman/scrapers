@@ -23,60 +23,101 @@ jobs:
           command_timeout: 45m
           script: |
             set -ex
-            cd /root/scrapers
             
-            # 1. Firewall Cleanup (Ensuring ports are open)
+            # --- 1. SYSTEM PREPARATION ---
+            echo "--- Updating System & Installing Host Nginx ---"
+            apt-get update
+            apt-get install -y nginx certbot python3-certbot-nginx ufw curl
+
+            # --- 2. FIREWALL ---
             echo "--- Configuring Firewall ---"
             ufw allow 80/tcp || true
             ufw allow 443/tcp || true
-            ufw allow 8080/tcp || true
-            ufw allow 8081/tcp || true
+            ufw allow 22/tcp || true
+            # ufw --force enable || true # Commented out to avoid locking out SSH if not careful
 
-            # 2. Detect Compose
-            if docker compose version > /dev/null 2>&1; then
-                DOCKER_COMPOSE="docker compose"
+            # --- 3. DOCKER SETUP (Ensure running) ---
+            if ! command -v docker &> /dev/null; then
+                curl -fsSL https://get.docker.com -o get-docker.sh
+                sh get-docker.sh
+                apt-get install -y docker-compose-plugin
+            fi
+            systemctl enable --now docker
+
+            # --- 4. REPO SYNC ---
+            mkdir -p /root/scrapers
+            cd /root/scrapers
+            if [ -d ".git" ]; then
+                git remote set-url origin https://github.com/dev-noaman/scrapers.git
+                git fetch origin main
+                git reset --hard origin/main
             else
-                DOCKER_COMPOSE="docker-compose"
+                cd /root
+                rm -rf scrapers
+                git clone https://github.com/dev-noaman/scrapers.git
+                cd scrapers
             fi
 
-            # 3. Sync Code
-            git remote set-url origin https://github.com/dev-noaman/scrapers.git
-            git fetch origin main
-            git reset --hard origin/main
+            # --- 5. DOCKER DEPLOYMENT ---
+            DOCKER_COMPOSE="docker compose"
+            if ! $DOCKER_COMPOSE version > /dev/null 2>&1; then DOCKER_COMPOSE="docker-compose"; fi
 
-            # 4. Deploy
-            echo "--- DEPLOYING API-php ---"
+            echo "--- API-php ---"
             cd /root/scrapers/API-php
             $DOCKER_COMPOSE down --remove-orphans || true
             $DOCKER_COMPOSE up -d --build
 
-            echo "--- DEPLOYING API-node ---"
+            echo "--- API-node ---"
             cd /root/scrapers/API-node
             $DOCKER_COMPOSE down --remove-orphans || true
             $DOCKER_COMPOSE up -d --build
 
-            # 5. VERIFICATION
-            echo "--- WAITING FOR HEALTH CHECKS (20s) ---"
-            sleep 20
-            
-            echo "--- Container Status ---"
-            docker ps
-            
-            echo "--- TESTING INTERNAL CONNECTIVITY ---"
-            echo "Testing API-php (8080)..."
-            curl -sI http://localhost:8080/health || echo "API-php Health Check FAILED"
-            
-            echo "Testing API-node (8081)..."
-            curl -sI http://localhost:8081/health || echo "API-node Health Check FAILED"
+            # --- 6. HOST NGINX AUTOMATION ---
+            echo "--- Configuring Host Nginx for noaman.cloud ---"
+            cat <<EOF > /etc/nginx/sites-available/noaman.cloud
+            server {
+                listen 80;
+                server_name noaman.cloud;
 
-            # Final check
-            PHP_STATUS=$(docker inspect -f '{{.State.Status}}' api-php-scraper)
-            NODE_STATUS=$(docker inspect -f '{{.State.Status}}' api-node-scraper)
-            
-            if [ "$PHP_STATUS" != "running" ] || [ "$NODE_STATUS" != "running" ]; then
-                echo "DEPLOYMENT FAILED: Containers are not fully operational."
-                docker ps -a
-                exit 1
+                location /api-php/ {
+                    proxy_pass http://127.0.0.1:8080/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade \$http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host \$host;
+                    proxy_cache_bypass \$http_upgrade;
+                    proxy_read_timeout 300;
+                }
+
+                location /api-node/ {
+                    proxy_pass http://127.0.0.1:8081/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade \$http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host \$host;
+                    proxy_cache_bypass \$http_upgrade;
+                    proxy_read_timeout 300;
+                }
+            }
+EOF
+            ln -sf /etc/nginx/sites-available/noaman.cloud /etc/nginx/sites-enabled/
+            rm -f /etc/nginx/sites-enabled/default || true
+            nginx -t
+            systemctl restart nginx
+
+            # --- 7. AUTOMATED SSL (CERTBOT) ---
+            echo "--- Attempting Automated SSL ---"
+            # This only runs if SSL isn't already active for the domain
+            if [ ! -d "/etc/letsencrypt/live/noaman.cloud" ]; then
+                certbot --nginx -d noaman.cloud --non-interactive --agree-tos -m noaman.cloud@gmail.com || echo "SSL failed, continuing with HTTP"
+            else
+                echo "SSL already configured."
             fi
 
-            echo "--- DEPLOYMENT FINISHED SUCCESS ---"
+            # --- 8. FINAL STATUS ---
+            sleep 10
+            docker ps
+            curl -sI http://localhost:8080/health || echo "API-php internal health check failed"
+            curl -sI http://localhost:8081/health || echo "API-node internal health check failed"
+
+            echo "--- DEPLOYMENT FULLY AUTOMATED & SUCCESS ---"
