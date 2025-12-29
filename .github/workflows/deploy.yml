@@ -26,7 +26,6 @@ jobs:
             cd /root
             
             # 1. OPTIMIZATION: Check Memory and Create Swap if needed
-            # Building Playwright/Puppeteer images needs ~2GB RAM.
             MEM_TOTAL=$(grep MemTotal /proc/meminfo | awk '{print $2}')
             if [ "$MEM_TOTAL" -lt 1500000 ]; then
                 echo "Low memory detected ($((MEM_TOTAL/1024))MB). Checking swap..."
@@ -36,11 +35,17 @@ jobs:
                     chmod 600 /swapfile
                     mkswap /swapfile
                     swapon /swapfile
-                    echo "Swap created and enabled."
+                    echo "/swapfile none swap sw 0 0" >> /etc/fstab || echo "fstab entry already exists or failed"
+                    echo "Swap created and enabled on boot."
                 fi
             fi
 
-            # 2. Command Detection
+            # 2. Ensure Docker starts on boot
+            echo "Ensuring Docker service is enabled on boot..."
+            systemctl enable docker || echo "Could not enable docker service"
+            systemctl start docker || echo "Could not start docker service"
+
+            # 3. Command Detection
             if docker compose version > /dev/null 2>&1; then
                 DOCKER_COMPOSE="docker compose"
             else
@@ -48,7 +53,7 @@ jobs:
             fi
             echo "Using $DOCKER_COMPOSE"
 
-            # 3. Code Sync
+            # 4. Code Sync
             if [ -d "scrapers" ]; then
                 cd scrapers
                 git fetch origin main
@@ -58,7 +63,7 @@ jobs:
                 cd scrapers
             fi
 
-            # 4. Deploy API-php (Sequential with Logs)
+            # 5. Deploy API-php
             echo "--- Building API-php ---"
             cd /root/scrapers/API-php
             $DOCKER_COMPOSE down --remove-orphans || true
@@ -68,7 +73,7 @@ jobs:
                 exit 1
             fi
 
-            # 5. Deploy API-node (Sequential with Logs)
+            # 6. Deploy API-node
             echo "--- Building API-node ---"
             cd /root/scrapers/API-node
             $DOCKER_COMPOSE down --remove-orphans || true
@@ -78,7 +83,7 @@ jobs:
                 exit 1
             fi
 
-            # 6. Final Status
+            # 7. Final Status
             echo "--- Final Check ---"
             docker ps -a
             
