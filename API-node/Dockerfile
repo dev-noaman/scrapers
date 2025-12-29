@@ -43,6 +43,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set Puppeteer cache path to where the web user expects it
 ENV PUPPETEER_CACHE_DIR=/var/www/.cache/puppeteer
 
+# Set working directory
+WORKDIR /app
+
 # Copy package files
 COPY package*.json ./
 
