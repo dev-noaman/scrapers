@@ -1,0 +1,47 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            # Navigate to project directory or clone if not exists
+            if [ -d "/root/scrapers" ]; then
+              cd /root/scrapers
+              git pull origin main
+            else
+              cd /root
+              git clone https://github.com/dev-noaman/scrapers.git
+              cd scrapers
+            fi
+            
+            # Deploy API-php
+            cd /root/scrapers/API-php
+            docker compose down
+            docker compose up -d --build
+            
+            # Deploy API-node
+            cd /root/scrapers/API-node
+            docker compose down
+            docker compose up -d --build
+            
+            # Clean up old images
+            docker system prune -f
+            
+            echo "Deployment completed successfully!"

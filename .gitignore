@@ -4,6 +4,7 @@
 # Allow only these directories
 !API-php/
 !API-node/
+!.github/
 
 # Allow only .gitignore and .gitattributes
 !.gitignore
