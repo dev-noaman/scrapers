@@ -5,6 +5,7 @@
 !API-php/
 !API-node/
 !.github/
+!docker/
 
 # Allow root README
 !README.md
