@@ -6,6 +6,7 @@
 !API-node/
 !.github/
 !docker/
+!Portal/
 
 # Allow root README
 !README.md
