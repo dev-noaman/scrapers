@@ -4,12 +4,14 @@ FROM python:3.11-slim
 RUN apt-get update --allow-releaseinfo-change && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
+    php8.2-fpm \
+    php8.2-cli \
+    php8.2-xml \
+    php8.2-curl \
+    nginx \
+    wget \
     curl \
     gnupg \
-    wget \
-    nginx \
-    php-fpm \
-    php-cli \
     python3-pip \
     libnss3 \
     libnspr4 \
