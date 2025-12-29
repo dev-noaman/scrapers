@@ -1,0 +1,20 @@
+{
+    "name": "qatar-investor-scraper",
+    "version": "1.0.0",
+    "description": "Qatar Investor Portal scraper for Hostinger",
+    "main": "scraper.js",
+    "scripts": {
+        "start": "node scraper.js",
+        "test": "node scraper.js 013001"
+    },
+    "keywords": [
+        "scraper",
+        "qatar",
+        "investor"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "puppeteer": "^21.0.0"
+    }
+}

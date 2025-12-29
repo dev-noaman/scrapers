@@ -1,0 +1,51 @@
+# Ignore everything by default
+/*
+
+# Allow only these directories
+!API-php/
+!API-node/
+
+# Allow only .gitignore and .gitattributes
+!.gitignore
+!.gitattributes
+
+# Within API-php, ignore these
+API-php/__pycache__/
+API-php/*.py[cod]
+API-php/*$py.class
+API-php/*.so
+API-php/.Python
+API-php/*.egg-info/
+API-php/dist/
+API-php/build/
+API-php/*.png
+API-php/*.jpg
+API-php/*.jpeg
+API-php/*.gif
+API-php/error_*.png
+API-php/*.log
+
+# Within API-node, ignore these
+API-node/node_modules/
+API-node/npm-debug.log
+API-node/yarn-error.log
+API-node/*.log
+API-node/*.png
+API-node/*.jpg
+API-node/*.jpeg
+API-node/*.gif
+
+# IDE files (everywhere)
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local

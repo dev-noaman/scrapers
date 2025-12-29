@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.png
+*.jpg
+*.jpeg
+*.gif
+error_*.png
+.git/
+.gitignore
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db

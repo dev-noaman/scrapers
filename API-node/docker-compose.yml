@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  api-node:
+    build: .
+    container_name: api-node-scraper
+    ports:
+      - "8081:80"
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+      - PUPPETEER_EXECUTABLE_PATH=/root/.cache/puppeteer/chrome/linux-131.0.6778.204/chrome-linux64/chrome
+    restart: unless-stopped
+    volumes:
+      # Mount code for development (remove in production)
+      - ./scraper.js:/app/scraper.js
+      - ./api.php:/app/api.php
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    shm_size: '2gb'
