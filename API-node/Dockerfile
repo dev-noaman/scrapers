@@ -1,13 +1,15 @@
 FROM node:20-slim
 
 # Install system dependencies including PHP, Nginx, and Chromium dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    wget \
+    nginx \
     php-fpm \
     php-cli \
-    nginx \
-    wget \
-    gnupg \
-    ca-certificates \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \

@@ -20,10 +20,15 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
-          command_timeout: 40m
+          command_timeout: 45m
           script: |
-            set -e  # Fail the script if any command fails
-            echo "--- DEPLOYMENT START ---"
+            set -ex  # Exit on error AND print every command executed (set -x)
+            
+            echo "--- DEPLOYMENT DIAGNOSTICS ---"
+            date
+            df -h
+            docker version || echo "Docker not installed?"
+            docker info | grep -E "Kernel|OS|Storage" || true
             
             # Simple command detection
             if docker compose version > /dev/null 2>&1; then
@@ -36,14 +41,17 @@ jobs:
             # Sync code
             mkdir -p /root/scrapers
             cd /root/scrapers
+            
+            # Ensure it's a git repo or clean it up
             if [ -d ".git" ]; then
                 echo "Updating existing repo..."
+                git remote set-url origin https://github.com/dev-noaman/scrapers.git
                 git fetch origin main
                 git reset --hard origin/main
             else
                 echo "Cloning fresh repo..."
                 cd /root
-                rm -rf scrapers # Clean up if it was a non-git dir
+                rm -rf scrapers
                 git clone https://github.com/dev-noaman/scrapers.git
                 cd scrapers
             fi
@@ -52,7 +60,6 @@ jobs:
             echo "--- API-php ---"
             cd /root/scrapers/API-php
             $DOCKER_COMPOSE down --remove-orphans || true
-            # Run up and capture status
             $DOCKER_COMPOSE up -d --build
 
             # Build and Run API-node
@@ -64,23 +71,23 @@ jobs:
             echo "--- Final Check ---"
             docker ps -a
             
-            # Check if containers are actually running
+            # Check container health and logs if they failed
             PHP_RUNNING=$(docker ps -q -f name=api-php-scraper)
             NODE_RUNNING=$(docker ps -q -f name=api-node-scraper)
             
             if [ -z "$PHP_RUNNING" ]; then
-                echo "CRITICAL: api-php-scraper IS NOT RUNNING. Logs:"
-                docker logs api-php-scraper || echo "No logs for api-php-scraper"
+                echo "ERROR: api-php-scraper failed to start. Logs:"
+                docker logs api-php-scraper || true
             fi
             
             if [ -z "$NODE_RUNNING" ]; then
-                echo "CRITICAL: api-node-scraper IS NOT RUNNING. Logs:"
-                docker logs api-node-scraper || echo "No logs for api-node-scraper"
+                echo "ERROR: api-node-scraper failed to start. Logs:"
+                docker logs api-node-scraper || true
             fi
             
-            # Fail the job if containers aren't running
+            # Explicit failure for the Action if containers are dead
             if [ -z "$PHP_RUNNING" ] || [ -z "$NODE_RUNNING" ]; then
-                echo "Deployment failed: One or more containers are not running."
+                echo "DEPLOYMENT FAILED: Containers are not running."
                 exit 1
             fi
 

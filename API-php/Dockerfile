@@ -1,14 +1,16 @@
 FROM python:3.11-slim
 
 # Install system dependencies including PHP, Nginx, and browser dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    wget \
+    nginx \
     php-fpm \
     php-cli \
-    nginx \
-    wget \
-    curl \
-    ca-certificates \
-    gnupg \
+    python3-pip \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
