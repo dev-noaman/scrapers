@@ -22,6 +22,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           command_timeout: 40m
           script: |
+            set -e  # Fail the script if any command fails
             echo "--- DEPLOYMENT START ---"
             
             # Simple command detection
@@ -51,6 +52,7 @@ jobs:
             echo "--- API-php ---"
             cd /root/scrapers/API-php
             $DOCKER_COMPOSE down --remove-orphans || true
+            # Run up and capture status
             $DOCKER_COMPOSE up -d --build
 
             # Build and Run API-node
@@ -60,5 +62,26 @@ jobs:
             $DOCKER_COMPOSE up -d --build
 
             echo "--- Final Check ---"
-            docker ps
-            echo "--- DEPLOYMENT FINISHED ---"
+            docker ps -a
+            
+            # Check if containers are actually running
+            PHP_RUNNING=$(docker ps -q -f name=api-php-scraper)
+            NODE_RUNNING=$(docker ps -q -f name=api-node-scraper)
+            
+            if [ -z "$PHP_RUNNING" ]; then
+                echo "CRITICAL: api-php-scraper IS NOT RUNNING. Logs:"
+                docker logs api-php-scraper || echo "No logs for api-php-scraper"
+            fi
+            
+            if [ -z "$NODE_RUNNING" ]; then
+                echo "CRITICAL: api-node-scraper IS NOT RUNNING. Logs:"
+                docker logs api-node-scraper || echo "No logs for api-node-scraper"
+            fi
+            
+            # Fail the job if containers aren't running
+            if [ -z "$PHP_RUNNING" ] || [ -z "$NODE_RUNNING" ]; then
+                echo "Deployment failed: One or more containers are not running."
+                exit 1
+            fi
+
+            echo "--- DEPLOYMENT FINISHED SUCCESS ---"
