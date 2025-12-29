@@ -6,6 +6,9 @@
 !API-node/
 !.github/
 
+# Allow root README
+!README.md
+
 # Allow only .gitignore and .gitattributes
 !.gitignore
 !.gitattributes
