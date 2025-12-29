@@ -20,7 +20,7 @@ if (empty($code)) {
 $code_esc = escapeshellarg($code);
 
 // Command to run Python script (Linux syntax)
-$command = "PYTHONIOENCODING=utf-8 python3 scraper.py --code $code_esc --json 2>&1"; 
+$command = "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright PYTHONIOENCODING=utf-8 python3 scraper.py --code $code_esc --json 2>&1"; 
 
 // Execute command
 $output = shell_exec($command);

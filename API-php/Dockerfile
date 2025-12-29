@@ -17,7 +17,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Set Playwright browser path
-ENV PLAYWRIGHT_BROWSERS_PATH=/app/.cache/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN mkdir -p /ms-playwright && chown www-data:www-data /ms-playwright
 
 # Install Playwright browsers and system dependencies
 RUN playwright install chromium
@@ -35,7 +36,7 @@ COPY nginx.conf /etc/nginx/sites-available/default
 RUN mkdir -p /run/php
 
 # Set permissions
-RUN chown -R www-data:www-data /app
+RUN chown -R www-data:www-data /app /ms-playwright
 
 # Expose port
 EXPOSE 80
