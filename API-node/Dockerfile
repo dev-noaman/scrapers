@@ -40,11 +40,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
-
-# Set Puppeteer cache path to a shared directory
-ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
+# Set Puppeteer cache path to where the web user expects it
+ENV PUPPETEER_CACHE_DIR=/var/www/.cache/puppeteer
 
 # Copy package files
 COPY package*.json ./
@@ -63,11 +60,9 @@ COPY README.md .
 # Copy Nginx configuration
 COPY nginx.conf /etc/nginx/sites-available/default
 
-# Create PHP-FPM socket directory and cache dir
-RUN mkdir -p /run/php /app/.cache/puppeteer
-
-# Set permissions
-RUN chown -R www-data:www-data /app && chmod -R 755 /app/.cache/puppeteer
+# Create folders and set permissions
+RUN mkdir -p /run/php /var/www/.cache/puppeteer && \
+    chown -R www-data:www-data /app /var/www/.cache
 
 # Expose port
 EXPOSE 80
