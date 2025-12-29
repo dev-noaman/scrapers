@@ -231,8 +231,12 @@ async function scrapeActivityCode(code) {
             '--disable-gpu',
             '--no-first-run',
             '--no-zygote',
-            '--single-process'
+            '--disable-crash-reporter',
+            '--disable-features=VisualizeOverlays'
         ]
+    }).catch(err => {
+        console.error("BROWSER_LAUNCH_ERROR:", err);
+        throw err;
     });
 
     try {
