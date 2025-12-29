@@ -25,19 +25,26 @@ jobs:
             set -ex
             cd /root/scrapers
             
-            # 1. Detect Compose
+            # 1. Firewall Cleanup (Ensuring ports are open)
+            echo "--- Configuring Firewall ---"
+            ufw allow 80/tcp || true
+            ufw allow 443/tcp || true
+            ufw allow 8080/tcp || true
+            ufw allow 8081/tcp || true
+
+            # 2. Detect Compose
             if docker compose version > /dev/null 2>&1; then
                 DOCKER_COMPOSE="docker compose"
             else
                 DOCKER_COMPOSE="docker-compose"
             fi
 
-            # 2. Sync Code
+            # 3. Sync Code
             git remote set-url origin https://github.com/dev-noaman/scrapers.git
             git fetch origin main
             git reset --hard origin/main
 
-            # 3. Deploy
+            # 4. Deploy
             echo "--- DEPLOYING API-php ---"
             cd /root/scrapers/API-php
             $DOCKER_COMPOSE down --remove-orphans || true
@@ -48,23 +55,28 @@ jobs:
             $DOCKER_COMPOSE down --remove-orphans || true
             $DOCKER_COMPOSE up -d --build
 
-            # 4. CAPTURE LOGS (Wait and print even if restarting)
-            echo "--- LOGS COLLECTION (Wait 10s) ---"
-            sleep 10
+            # 5. VERIFICATION
+            echo "--- WAITING FOR HEALTH CHECKS (20s) ---"
+            sleep 20
             
-            echo "--- api-php-scraper container status ---"
-            docker inspect -f '{{.State.Status}} (ExitCode: {{.State.ExitCode}})' api-php-scraper || true
-            echo "--- api-php-scraper logs ---"
-            docker logs --tail 100 api-php-scraper || true
+            echo "--- Container Status ---"
+            docker ps
             
-            echo "--- api-node-scraper logs ---"
-            docker logs --tail 20 api-node-scraper || true
+            echo "--- TESTING INTERNAL CONNECTIVITY ---"
+            echo "Testing API-php (8080)..."
+            curl -sI http://localhost:8080/health || echo "API-php Health Check FAILED"
+            
+            echo "Testing API-node (8081)..."
+            curl -sI http://localhost:8081/health || echo "API-node Health Check FAILED"
 
-            # Final check to fail if not running
+            # Final check
             PHP_STATUS=$(docker inspect -f '{{.State.Status}}' api-php-scraper)
-            if [ "$PHP_STATUS" != "running" ]; then
-                echo "FAIL: api-php-scraper is $PHP_STATUS"
+            NODE_STATUS=$(docker inspect -f '{{.State.Status}}' api-node-scraper)
+            
+            if [ "$PHP_STATUS" != "running" ] || [ "$NODE_STATUS" != "running" ]; then
+                echo "DEPLOYMENT FAILED: Containers are not fully operational."
+                docker ps -a
                 exit 1
             fi
-            
+
             echo "--- DEPLOYMENT FINISHED SUCCESS ---"
