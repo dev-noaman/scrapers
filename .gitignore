@@ -7,9 +7,12 @@
 !.github/
 !docker/
 !Portal/
+!scraper/
+!docker-scraper/
 
 # Allow root README
 !README.md
+!docker-compose.yml
 
 # Allow only .gitignore and .gitattributes
 !.gitignore

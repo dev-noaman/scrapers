@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  portal:
+    build:
+      context: ./Portal
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    container_name: single_window_portal
+
+  scraper:
+    build:
+      context: ./docker-scraper
+      dockerfile: Dockerfile
+    volumes:
+      - ./docker-scraper/drive:/app/drive
+      - ./docker-scraper/output:/app/output
+    # Keeps container running so you can exec into it
+    command: tail -f /dev/null
+    container_name: single_window_scraper

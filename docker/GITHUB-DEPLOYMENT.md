@@ -84,61 +84,42 @@ git clone https://github.com/dev-noaman/scrapers.git
 cd scrapers
 ```
 
-### 4. Build and Run Containers
-```bash
-# API-php
-cd API-php
-docker compose up -d --build
+### 4. Build and Run Containers (New Root Configuration)
+We now use a single root `docker-compose.yml` to orchestrate everything.
 
-# API-node
-cd ../API-node
-docker compose up -d --build
+```bash
+# Build and start all services (Portal + Scraper)
+docker-compose up -d --build
 ```
 
-### 5. Configure Firewall
+### 5. Run Scrapers
+The scraper container (`single_window_scraper`) stays running in the background. You can execute scripts inside it:
+
 ```bash
-sudo ufw allow 8080/tcp
-sudo ufw allow 8081/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw reload
+# List all codes
+docker-compose exec scraper python scrape_codes.py
+
+# Scrape Arabic Details
+docker-compose exec scraper python scrape-AR.py
+
+# Scrape English Details
+docker-compose exec scraper python scrape-EN.py
 ```
 
-### 6. Set Up Nginx Reverse Proxy
-```bash
-sudo apt-get install nginx
+### 6. Configure Nginx (Optional)
+If you are running the `portal` service on port 8080, you can configure your main VPS Nginx to reverse proxy to it:
 
-# Create config
-sudo nano /etc/nginx/sites-available/scrapers
-```
-
-Paste this configuration:
 ```nginx
 server {
     listen 80;
     server_name noaman.cloud www.noaman.cloud;
 
-    location /api-php/ {
-        proxy_pass http://localhost:8080/;
+    location / {
+        proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_read_timeout 300;
-    }
-
-    location /api-node/ {
-        proxy_pass http://localhost:8081/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_read_timeout 300;
     }
 }
-```
-
-Enable and reload:
-```bash
-sudo ln -s /etc/nginx/sites-available/scrapers /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
 ```
 
 ### 7. Configure DNS

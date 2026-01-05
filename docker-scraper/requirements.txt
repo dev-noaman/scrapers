@@ -1,0 +1,3 @@
+seleniumbase
+gspread
+oauth2client
