@@ -79,10 +79,16 @@ jobs:
             cd /root/scrapers
             
             # Aggressive Cleanup to fix 'ContainerConfig' errors
+            echo "--- Cleaning up stuck containers ---"
+            docker stop single_window_portal single_window_scraper || true
             docker rm -f single_window_portal single_window_scraper || true
+            docker network prune -f || true
+            
+            # Ensure the old stack is down
             docker compose down --remove-orphans || docker-compose down --remove-orphans || true
             
             # Build and Start with Force Recreate
+            echo "--- Starting new containers ---"
             docker compose up -d --build --force-recreate || docker-compose up -d --build --force-recreate
 
             # --- 4. HOST NGINX CONFIGURATION ---
