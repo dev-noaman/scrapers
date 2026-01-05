@@ -9,6 +9,7 @@
 !Portal/
 !scraper/
 !docker-scraper/
+docker-scraper/drive/
 
 # Allow root README
 !README.md

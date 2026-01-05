@@ -84,6 +84,21 @@ git clone https://github.com/dev-noaman/scrapers.git
 cd scrapers
 ```
 
+### 3.1. Upload Credentials (IMPORTANT)
+Since `google-credentials.json` is a secret, it is **not** included in the git repository. You must upload it manually to the VPS.
+
+**Upload from your local machine:**
+```bash
+# Run this on your LOCAL machine in the docker-scraper folder
+scp drive/google-credentials.json your_username@your_vps_ip:~/scrapers/docker-scraper/drive/
+```
+
+**Or create it manually on the VPS:**
+```bash
+nano ~/scrapers/docker-scraper/drive/google-credentials.json
+# Paste your JSON content here
+```
+
 ### 4. Build and Run Containers (New Root Configuration)
 We now use a single root `docker-compose.yml` to orchestrate everything.
 
