@@ -77,8 +77,13 @@ jobs:
             
             echo "--- Deploying Root Services (Portal:8085 + Scraper) ---"
             cd /root/scrapers
+            
+            # Aggressive Cleanup to fix 'ContainerConfig' errors
+            docker rm -f single_window_portal single_window_scraper || true
             docker compose down --remove-orphans || docker-compose down --remove-orphans || true
-            docker compose up -d --build || docker-compose up -d --build
+            
+            # Build and Start with Force Recreate
+            docker compose up -d --build --force-recreate || docker-compose up -d --build --force-recreate
 
             # --- 4. HOST NGINX CONFIGURATION ---
             # Ensures VPS maps domains to the correct local ports
