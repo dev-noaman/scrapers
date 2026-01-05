@@ -38,6 +38,20 @@ The project uses a split-structure where each legacy API has its own Docker cont
 
 ---
 
+## 🏃‍♂️ Quick Run Commands
+
+Run these commands from your terminal (VPS or Local) to execute scrapers immediately inside the running container:
+
+| Scraper | Command |
+| :--- | :--- |
+| **English Scraper** | `docker exec -it single_window_scraper python scrape-EN.py` |
+| **Arabic Scraper** | `docker exec -it single_window_scraper python scrape-AR.py` |
+| **Activity Codes** | `docker exec -it single_window_scraper python scrape_codes.py` |
+
+> **Note:** The container must be running (`docker compose up -d`) for these to work.
+
+---
+
 ## 🚀 Running Locally
 
 ### 1. Run the Main System (Portal + Scraper)
