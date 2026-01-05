@@ -5,9 +5,7 @@
 !API-php/
 !API-node/
 !.github/
-!docker/
 !Portal/
-!scraper/
 !docker-scraper/
 docker-scraper/drive/
 
