@@ -12,6 +12,7 @@ docker-scraper/drive/
 # Allow root README
 !README.md
 !docker-compose.yml
+!DOCKER.MD
 
 # Allow only .gitignore and .gitattributes
 !.gitignore
