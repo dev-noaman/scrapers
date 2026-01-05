@@ -76,7 +76,7 @@ jobs:
             # Portal on 8082, Scraper (background)
             
             echo "--- Deploying Root Services (Portal:8085 + Scraper) ---"
-            cd /root/scrapers
+            cd /root/scrapers/docker
             
             # Aggressive Cleanup to fix 'ContainerConfig' errors
             echo "--- Cleaning up stuck containers ---"

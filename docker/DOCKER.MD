@@ -17,11 +17,13 @@ The system consists of **4 Docker services** orchestrated via Docker Compose.
 
 ## 📂 Directory Structure & Dockerfiles
 
-The project uses a split-structure where each legacy API has its own Docker context, while the new components (Portal, Scraper) are managed from the root.
+The project uses a split-structure where each legacy API has its own Docker context, while the new components (Portal, Scraper) are managed from the root via the `docker/` folder.
 
 ```
 / (Root)
-├── docker-compose.yml        # Orchestrates 'portal' and 'scraper'
+├── docker/                   # Docker Configuration
+│   ├── docker-compose.yml    # Orchestrates 'portal' and 'scraper'
+│   └── DOCKER.MD             # This documentation
 ├── docker-scraper/           # Context for 'scraper' service
 │   ├── Dockerfile            # Python 3.11 + Chrome + SeleniumBase config
 │   ├── requirements.txt      # Python dependencies (seleniumbase, gspread)
@@ -48,7 +50,7 @@ Run these commands from your terminal (VPS or Local) to execute scrapers immedia
 | **Arabic Scraper** | `docker exec -it single_window_scraper python scrape-AR.py` |
 | **Activity Codes** | `docker exec -it single_window_scraper python scrape_codes.py` |
 
-> **Note:** The container must be running (`docker compose up -d`) for these to work.
+> **Note:** The container must be running (`cd docker && docker compose up -d`) for these to work.
 
 ---
 
@@ -57,6 +59,7 @@ Run these commands from your terminal (VPS or Local) to execute scrapers immedia
 ### 1. Run the Main System (Portal + Scraper)
 To start the dashboard and the background scraper:
 ```bash
+cd docker
 docker compose up -d --build
 ```
 - **Access Portal:** [http://localhost:8085](http://localhost:8085)
