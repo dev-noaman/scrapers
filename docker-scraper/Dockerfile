@@ -1,13 +1,35 @@
-FROM seleniumbase/seleniumbase:latest
+# Use official Python 3.11 stable image
+FROM python:3.11-slim
+
+# Install system dependencies and Google Chrome
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    unzip \
+    curl \
+    xvfb \
+    libxi6 \
+    libgconf-2-4 \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
 
-# Copy the entire directory (scripts + drive folder)
+# Install Python requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install SeleniumBase drivers (after installing package)
+RUN seleniumbase install chromedriver
+
+# Copy the entire directory
 COPY . .
 
-# Default command: Run the Activity Codes scraper (user can override in docker-compose)
-CMD ["python3", "scrape_codes.py"]
+# Default command
+CMD ["python", "scrape_codes.py"]

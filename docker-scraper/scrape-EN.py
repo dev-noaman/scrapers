@@ -394,10 +394,10 @@ def save_to_sheet(worksheet, row_number: int, col: int, value: str) -> bool:
         return False
 
 
-def process_activity_code(driver, code: str, row_number: int, worksheet) -> tuple[bool, bool, str | None]:
+def process_activity_code(driver, code: str, row_number: int, worksheet) -> "Tuple[bool, bool, Optional[str]]":
     """
     Process a single activity code.
-    Returns: (success: bool, used_additional_step: bool, error_msg: str | None)
+    Returns: (success: bool, used_additional_step: bool, error_msg: Optional[str])
     """
     used_additional = False
     error_msg = None
