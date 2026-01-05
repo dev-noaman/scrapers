@@ -6,7 +6,7 @@ services:
       context: ./Portal
       dockerfile: Dockerfile
     ports:
-      - "8082:80"
+      - "8085:80"
     restart: unless-stopped
     container_name: single_window_portal
 

@@ -74,7 +74,7 @@ jobs:
             # B. New Root Services (Portal & Scraper)
             # Portal on 8082, Scraper (background)
             
-            echo "--- Deploying Root Services (Portal:8082 + Scraper) ---"
+            echo "--- Deploying Root Services (Portal:8085 + Scraper) ---"
             cd /root/scrapers
             docker compose down --remove-orphans || docker-compose down --remove-orphans || true
             docker compose up -d --build || docker-compose up -d --build
@@ -88,9 +88,9 @@ jobs:
                 listen 80 default_server;
                 server_name noaman.cloud www.noaman.cloud;
 
-                # Portal (from Root Docker Compose) -> 8082
+                # Portal (from Root Docker Compose) -> 8085
                 location / {
-                    proxy_pass http://127.0.0.1:8082/;
+                    proxy_pass http://127.0.0.1:8085/;
                     proxy_http_version 1.1;
                     proxy_set_header Upgrade $http_upgrade;
                     proxy_set_header Connection 'upgrade';
