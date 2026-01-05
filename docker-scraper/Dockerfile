@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Default command: Run the Activity Codes scraper (user can override in docker-compose)
-CMD ["python", "scrape_codes.py"]
+CMD ["python3", "scrape_codes.py"]
