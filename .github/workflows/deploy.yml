@@ -16,11 +16,14 @@ jobs:
       
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
+        env:
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT || '22' }}
+          envs: GOOGLE_CREDENTIALS_JSON
           command_timeout: 45m
           script: |
             set -ex
@@ -48,6 +51,11 @@ jobs:
                 cd scrapers
             fi
 
+            # --- 2.5. INJECT SECRETS ---
+            echo "--- Injecting Google Credentials ---"
+            mkdir -p /root/scrapers/docker-scraper/drive
+            echo "$GOOGLE_CREDENTIALS_JSON" > /root/scrapers/docker-scraper/drive/google-credentials.json
+            
             # --- 3. DEPLOY SERVICES ---
             
             # A. Legacy Services (API-php & API-node)
