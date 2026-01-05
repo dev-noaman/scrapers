@@ -143,3 +143,34 @@ docker compose up -d --build
 **3. `SyntaxError` in Python**
 *   **Cause:** Running Python 3 code with `python` (legacy 2.7) instead of `python3`.
 *   **Fix:** The Dockerfile now defaults to Python 3.11. Use `python` command inside the container (aliased/default for 3.11 image) or explicit `python3`.
+
+---
+
+## ⚠️ Manual Reset & Update (VPS)
+
+If you need to **completely wipe** all current containers and pull the latest code from GitHub manually, run these commands on your VPS:
+
+```bash
+# 1. STOP & REMOVE ALL CONTAINERS (Clean Slate)
+docker stop $(docker ps -aq)
+docker rm -f $(docker ps -aq)
+docker network prune -f
+
+# 2. UPDATE CODE
+cd /root/scrapers
+git fetch origin main
+git reset --hard origin/main
+
+# 3. RESTART EVERYTHING
+
+# A. Start Legacy APIs
+cd /root/scrapers/API-php && docker compose up -d --build
+cd /root/scrapers/API-node && docker compose up -d --build
+
+# B. Start Main System (Portal + Scraper)
+cd /root/scrapers/docker
+docker compose up -d --build --force-recreate
+
+# 4. VERIFY
+docker ps
+```
